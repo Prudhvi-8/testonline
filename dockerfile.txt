@@ -1,0 +1,49 @@
+Core Dockerfile instructions
+
+
+Instruction	Purpose	Example (from your exam)
+
+FROM	Sets the base image to build on top of	FROM eclipse-temurin:17-jdk or FROM tomcat:9-jdk17
+WORKDIR	Sets the working directory inside the image for subsequent instructions	WORKDIR /app
+COPY	Copies files from your machine into the image	COPY target/library-management.jar app.jar
+RUN	Executes a command during build (creates a new layer)	RUN mvn clean package
+EXPOSE	Documents which port the container listens on (doesn't actually publish it — just metadata)	EXPOSE 8080
+CMD	The default command that runs when the container starts	CMD ["java", "-jar", "app.jar"]
+ENTRYPOINT	Similar to CMD, but harder to override — often used with CMD together for flexible args	ENTRYPOINT ["catalina.sh"]
+
+
+
+Multi-stage build only — one extra keyword
+Instruction	Purpose
+AS (used with FROM)	Names a build stage so a later stage can copy from it
+COPY --from=	Copies files from an earlier named stage instead of your local machine
+Your two exam Dockerfiles, using exactly these instructions
+ -----
+SET-3 (JAR, single-stage):
+
+dockerfile
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY target/library-management.jar app.jar
+EXPOSE 8080
+CMD ["java", "-jar", "app.jar"]
+-----
+SET-1 (WAR, multi-stage):
+
+dockerfile
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY . .
+RUN mvn clean package
+
+# Stage 2: Runtime
+FROM tomcat:9-jdk17
+COPY --from=build /app/target/AI-OLMS.war /usr/local/tomcat/webapps/
+EXPOSE 8080
+CMD ["catalina.sh", "run"]
+
+----
+Quick distinction worth remembering for viva
+RUN happens at build time (bakes the result into the image layer)
+CMD happens at container start time (runs fresh every time you docker run)
